@@ -108,7 +108,38 @@ app.post("/articles", async (req, res) => {
     }
 });
 
+app.post("/login", async(req, res) => {
+   let conn;
+   try {
+        conn = await pool.getConnection();
+        const { email, password } = req.body;
+        const rows = await conn.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
+        res.status(200).json(rows);
+    } catch (err) {
+        res.status(500).json({ error: "Erreur lors de la connexion." });
+    } finally {
+        if (conn) conn.release(); // Toujours libérer la connexion après usage
+    }
+});
 
+app.post("/signup", async(req, res) => {
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        const { email, password, firstname, lastname } = req.body;
+        const result = await conn.query(
+            'INSERT INTO users (email, password, firstname, lastname) VALUES (?, ?, ?, ?)',
+            [email, password, firstname, lastname]
+        );
+        const insertedId = result.insertId;
+        const newUser = await conn.query('SELECT * FROM users WHERE user_id = ?', [insertedId]);
+        res.status(201).json(newUser[0]);
+    } catch (err) {
+        res.status(500).json({ error: "Erreur lors de l'inscription." });
+    } finally {
+        if (conn) conn.release(); // Toujours libérer la connexion après usage
+    }
+})
 
 app.listen(8000, () => {
     console.log("Serveur a l'ecoute");
