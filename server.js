@@ -82,32 +82,6 @@ app.get("/articles/user/:id", async (req, res) => {
     }
 });
 
-app.post("/articles", async (req, res) => {
-    let conn;
-    try {
-        conn = await pool.getConnection();
-
-        const { title, content, author } = req.body;
-
-        const result = await conn.query(
-            'INSERT INTO articles (title, content, author) VALUES (?, ?, ?)',
-            [title, content, author]
-        );
-
-        // Récupère l'ID de l'article nouvellement créé
-        const insertedId = result.article_id;
-
-        // Récupère l'article créé en le sélectionnant par son ID
-        const newArticle = await conn.query('SELECT * FROM articles WHERE article_id = ?', [insertedId]);
-
-        res.status(201).json(newArticle[0]);  // Répond avec l'article nouvellement créé
-    } catch (err) {
-        res.status(500).json({ error: "Erreur lors de la création de l'article." });
-    } finally {
-        if (conn) conn.release(); // Toujours libérer la connexion après usage
-    }
-});
-
 app.post("/login", async(req, res) => {
    let conn;
    try {
@@ -126,16 +100,17 @@ app.post("/signup", async(req, res) => {
     let conn;
     try {
         conn = await pool.getConnection();
-        const { email, password, firstname, lastname } = req.body;
+        const { email, password, username, userfirstname } = req.body;
         const result = await conn.query(
-            'INSERT INTO users (email, password, firstname, lastname) VALUES (?, ?, ?, ?)',
-            [email, password, firstname, lastname]
+            'INSERT INTO users (email, password, username, userfirstname) VALUES (?, ?, ?, ?)',
+            [email, password, username, userfirstname]
         );
         const insertedId = result.insertId;
         const newUser = await conn.query('SELECT * FROM users WHERE user_id = ?', [insertedId]);
         res.status(201).json(newUser[0]);
     } catch (err) {
-        res.status(500).json({ error: "Erreur lors de l'inscription." });
+        console.error("Erreur lors de l'inscription :", err);
+        res.status(500).json({ error: "Erreur lors de l'inscription.", details: err.message });
     } finally {
         if (conn) conn.release(); // Toujours libérer la connexion après usage
     }
