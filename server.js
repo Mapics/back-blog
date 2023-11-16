@@ -57,6 +57,33 @@ app.get("/articles", async (req, res) => {
     }
 });
 
+app.post("/articles/post", async (req, res) => {
+    let conn;
+    try {
+        conn = await pool.getConnection();
+
+        const { title, content, author } = req.body;
+
+        const result = await conn.query(
+            'INSERT INTO articles (title, content, author) VALUES (?, ?, ?)',
+            [title, content, author]
+        );
+
+        // Récupère l'ID de l'article nouvellement créé
+        const insertedId = result.insertId;
+
+        // Récupère l'article créé en le sélectionnant par son ID
+        const newArticle = await conn.query('SELECT * FROM articles WHERE article_id = ?', [insertedId]);
+
+        res.status(201).json(newArticle[0]);  // Répond avec l'article nouvellement créé
+    } catch (err) {
+        res.status(500).json({ error: "Erreur lors de la création de l'article." });
+    } finally {
+        if (conn) conn.release(); // Toujours libérer la connexion après usage
+    }
+});
+
+
 app.get("/articles/:id", async (req, res) => {
     let conn;
     try {
@@ -90,12 +117,14 @@ app.post("/login", async(req, res) => {
         conn = await pool.getConnection();
         const { email, password } = req.body;
         const user = await conn.query('SELECT * FROM users WHERE email = ?', [email]);
+        
         if (user.length === 0) {
             res.status(404).json({ error: "Utilisateur non trouvé." });
             return;
         }
         
         const hashedPassword = user[0].password;
+        console.log(password, hashedPassword)
         const passwordMatch = await bcrypt.compare(password, hashedPassword);
         
         if (passwordMatch) {
