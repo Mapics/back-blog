@@ -1,5 +1,6 @@
 const express = require('express')
 const mariadb = require('mariadb')
+const bcrypt = require('bcrypt')
 
 require('dotenv').config();
 
@@ -84,18 +85,28 @@ app.get("/articles/user/:id", async (req, res) => {
 
 app.post("/login", async(req, res) => {
    let conn;
+   console.log('tentative de connexion')
    try {
         conn = await pool.getConnection();
         const { email, password } = req.body;
-        const rows = await conn.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
-        console.log("email: " + email); 
-        console.log("password: " + password);
-        console.log(rows);
-        res.status(200).json(rows);
+        const user = await conn.query('SELECT * FROM users WHERE email = ?', [email]);
+        if (user.length === 0) {
+            res.status(404).json({ error: "Utilisateur non trouvé." });
+            return;
+        }
+        
+        const hashedPassword = user[0].password;
+        const passwordMatch = await bcrypt.compare(password, hashedPassword);
+        
+        if (passwordMatch) {
+            res.status(200).json({ message: "Connexion réussie." });
+        } else {
+            res.status(401).json({ error: "Mot de passe incorrect." });
+        }
     } catch (err) {
-        console.error("Erreur lors de la connexion :", err);
         res.status(500).json({ error: "Erreur lors de la connexion." });
     } finally {
+        console.log('echoué')
         if (conn) conn.release(); // Toujours libérer la connexion après usage
     }
 });
@@ -105,9 +116,10 @@ app.post("/signup", async(req, res) => {
     try {
         conn = await pool.getConnection();
         const { email, password, username, userfirstname } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
         const result = await conn.query(
             'INSERT INTO users (email, password, username, userfirstname) VALUES (?, ?, ?, ?)',
-            [email, password, username, userfirstname]
+            [email, hashedPassword, username, userfirstname]
         );
         const insertedId = result.insertId;
         const newUser = await conn.query('SELECT * FROM users WHERE user_id = ?', [insertedId]);
