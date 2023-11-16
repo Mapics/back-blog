@@ -88,8 +88,12 @@ app.post("/login", async(req, res) => {
         conn = await pool.getConnection();
         const { email, password } = req.body;
         const rows = await conn.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
+        console.log("email: " + email); 
+        console.log("password: " + password);
+        console.log(rows);
         res.status(200).json(rows);
     } catch (err) {
+        console.error("Erreur lors de la connexion :", err);
         res.status(500).json({ error: "Erreur lors de la connexion." });
     } finally {
         if (conn) conn.release(); // Toujours libérer la connexion après usage
@@ -107,6 +111,7 @@ app.post("/signup", async(req, res) => {
         );
         const insertedId = result.insertId;
         const newUser = await conn.query('SELECT * FROM users WHERE user_id = ?', [insertedId]);
+        console.log("new user signup")
         res.status(201).json(newUser[0]);
     } catch (err) {
         console.error("Erreur lors de l'inscription :", err);
