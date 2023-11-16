@@ -117,21 +117,26 @@ app.post("/login", async(req, res) => {
         conn = await pool.getConnection();
         const { email, password } = req.body;
         const user = await conn.query('SELECT * FROM users WHERE email = ?', [email]);
-        
+
         if (user.length === 0) {
             res.status(404).json({ error: "Utilisateur non trouvé." });
             return;
         }
-        
         const hashedPassword = user[0].password;
         console.log(password, hashedPassword)
-        const passwordMatch = await bcrypt.compare(password, hashedPassword);
-        
-        if (passwordMatch) {
-            res.status(200).json({ message: "Connexion réussie." });
-        } else {
-            res.status(401).json({ error: "Mot de passe incorrect." });
-        }
+        const passwordMatch = await bcrypt.compare(password, hashedPassword) ;
+        bcrypt.compare(password, hashedPassword, function(err, response){
+            if (response) {
+                console.log("Mot de passe correct");
+            } else {
+                console.log("Mot de passe incorrect" + err);
+            }
+        })
+        // if (passwordMatch) {
+        //     res.status(200).json({ message: "Connexion réussie." });
+        // } else {
+        //     res.status(401).json({ error: "Mot de passe incorrect." });
+        // }
     } catch (err) {
         res.status(500).json({ error: "Erreur lors de la connexion." });
     } finally {
